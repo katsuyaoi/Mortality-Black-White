@@ -20,6 +20,9 @@ Conventional discrete-time survival analysis using multilevel logistic regressio
 1.	Place hrs_survival_post.csv in the same directory.
 2.	Edit the setwd() line at the top of the script to point to that directory.
 This file differs from hrs_survival.csv in that survival intervals are stored in long format, enabling multilevel logistic regression. Because computational demands are relatively modest, this program does not implement a checkpointing function.
+
+
+
 **Data preprocessing & encoding**
 | Component        | Specification                                                           |
 | ---------------- | ----------------------------------------------------------------------- |
@@ -96,6 +99,65 @@ This file differs from hrs_survival.csv in that survival intervals are stored in
 | Classification | Argmax over logits                           |
 | Checkpointing  | `checkpoints_base_observed/seed_###.pt`      |
 | Device         | CUDA if available                            |
+
+**Hyperparameters — Supplemental_full_gpu_FINAL (Base + AL + Personality)**
+**Data preprocessing & encoding**
+| Component        | Specification                                              |
+| ---------------- | ---------------------------------------------------------- |
+| Outcome          | `died_` binary (0/1)                                       |
+| Hazard age       | `age_` log-transformed; `age_raw` retained                 |
+| AL ages          | `age_1`, `age_3`, `age_5` log-transformed; raw retained    |
+| Personality ages | `agep_1`, `agep_3`, `agep_5` log-transformed; raw retained |
+| Scaling          | Z-score for all non-binary, non-age variables              |
+| Missing values   | Set to 0 post-scaling                                      |
+| Missingness mask | Binary NA indicator                                        |
+| Mask usage       | Concatenated with values in all sequence branches          |
+**Sequential structures**
+| Component      | Specification              |
+| -------------- | -------------------------- |
+| Intended waves | 15                         |
+| Retained waves | Non-empty, equal dimension |
+| Bases          | Same as baseline           |
+| Step input     | `2 × tv_step_feat_dim`     |
+**AL & Personality branches**
+| Component   | Specification                          |
+| ----------- | -------------------------------------- |
+| Waves       | 3 (ages 1, 3, 5)                       |
+| Step input  | Values + mask + Δage                   |
+| Δage        | Raw age distance from current interval |
+| Attention   | Softmax across waves                   |
+| Hidden size | 64                                     |
+**Model architecture**
+| Component | Specification                  |
+| --------- | ------------------------------ |
+| Heads     | Static + TV + AL + Personality |
+| Mixing    | Cross-branch dense layer       |
+| Mix dim   | 32                             |
+| Output    | Additive base + AL/Pers logits |
+| ID effect | Embedded random intercept      |
+**Training schedule**
+| Component  | Specification          |
+| ---------- | ---------------------- |
+| Seeds      | `1:100`                |
+| Phase 1    | Base-only, 50 epochs   |
+| Phase 2    | Full model, 100 epochs |
+| Batch size | 1024                   |
+| Optimizer  | Adam                   |
+| LR / WD    | `1e-3 / 1e-3`          |
+**Loss & evaluation**
+| Component      | Specification                                |
+| -------------- | -------------------------------------------- |
+| Base loss      | Weighted cross-entropy                       |
+| FP penalty     | Mean squared predicted death among survivors |
+| Penalty weight | `lambda_fp = 0.5`                            |
+| Classification | Argmax over logits                           |
+| Groups         | NH-White vs Black                            |
+| Checkpointing  | `checkpoints_fullspec/seed_###.pt`           |
+| Saved artifact | `TRAINING_fullspec_100seeds.RData`           |
+| Device         | CUDA if available                            |
+
+
+
 
 
 
