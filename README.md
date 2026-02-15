@@ -50,7 +50,7 @@ This file differs from hrs_survival.csv in that survival intervals are stored in
 | ------------ | --------------------------------------------- |
 | Split method | Stratified 80/20 split                        |
 | Function     | `caret::createDataPartition(y_idx, p = 0.80)` |
-| Unit         | Row-level (not ID-grouped)                    |
+| Unit         | Person id                                     |
 **Model architecture**
 | Component        | Specification                            |
 | ---------------- | ---------------------------------------- |
