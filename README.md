@@ -1,59 +1,42 @@
-# README — Supplemental Materials
-
-This repository contains supplemental materials for the manuscript:Comparing Surface-Based and Regression-Based Representations of the Black–White Mortality Hazard Gap
-
+# README — Supplemental Materials This repository contains supplemental materials for the manuscript:Comparing Surface-Based and Regression-Based Representations of the Black–White Mortality Hazard Gap
 The supplemental files provide the R scripts and input-data structure needed to reproduce the regression-based hazard benchmarks, train the full neural-network hazard model, and generate post-estimation representational probe tables and figures.
 
-## Files included
-All data files are included in the zip.file titled 'supplemental data.' Unzip and place them your working directory.
-
-### `Supplemental_full_regression_FINAL.R`
-
+## Files included All data files are included in the zip.file titled 'supplemental data.' Unzip and place them your working directory.
+## `Supplemental_full_regression_FINAL.R`
 Conventional regression-based discrete-time hazard models using sex-stratified random-intercept logistic regression.
-
 This script estimates three regression specifications:
-
 1. Logged-age model  
 2. Three-degree-of-freedom natural spline-age model  
 3. Race-specific spline-age model allowing the spline-age function to vary for non-Hispanic Black respondents  
-
 The script also generates fixed-effect predicted mortality curves by age, model-fit statistics, coefficient tables, and classification-performance summaries under both conventional and prevalence-calibrated thresholds.
-
 Required input file:
-
 - `hrs_survival_post.csv`
-
 Place `hrs_survival_post.csv` in the working directory and edit the `setwd("yourdatalocation")` line at the top of the script.
-
 Main output folder:
-
 - `regression_hazard_model_results`
-
 Key outputs include:
-
-- `coefficient_table_all_models.csv`
-- `model_fit_table_mortality_models.csv`
-- `mortality_model_comparison_curves_age50_90_by5_fixed_effect_ci.csv`
-- `mortality_model_comparison_curves_age50_90_by5_fixed_effect_ci.png`  Figure 1 
-- `eval_threshold_free_full_data.csv`
-- `eval_thresholded_full_data.csv`
-- `eval_threshold_free_full_data_by_race_sex.csv`
-- `eval_thresholded_full_data_by_race_sex.csv`
-- `eval_subgroup_thresholded_full_data.csv`
-- `regression_model_objects_all.rds`
-- `regression_hazard_model_workspace.RData`
+ `coefficient_table_all_models.csv`
+ `model_fit_table_mortality_models.csv`
+ `mortality_model_comparison_curves_age50_90_by5_fixed_effect_ci.csv`
+ `mortality_model_comparison_curves_age50_90_by5_fixed_effect_ci.png`  Figure 1 
+ `eval_threshold_free_full_data.csv`
+ `eval_thresholded_full_data.csv`
+ `eval_threshold_free_full_data_by_race_sex.csv`
+ `eval_thresholded_full_data_by_race_sex.csv`
+ `eval_subgroup_thresholded_full_data.csv`
+ `regression_model_objects_all.rds`
+ `regression_hazard_model_workspace.RData`
 
 The regression models are estimated on the full analytic person-interval file. Classification results from these models are used as regression-based benchmarks referenced in text
 
 ### `Supplemental_full_gpu_FINAL.R`
 
 Full neural-network discrete-time hazard model incorporating demographic, temporal, reported-health, Allostatic Load, and Personality data branches.
-
 This script trains the full neural-network hazard model across:
 
-- 10 respondent-level train/test partitions
-- 20 training seeds per partition
-- 200 total trained models
+10 respondent-level train/test partitions
+20 training seeds per partition
+200 total trained models
 
 
 Required input files in Supplemental data:
@@ -68,20 +51,17 @@ Main output folder:
 - `checkpoints_fullspec_IDsplit_multisplit`
 
 Key outputs include:
-
-- Split-specific checkpoint folders
-- `split_meta/`
-- `fixed_split_list.rds`
-- `fixed_split_registry.csv`
-- `fixed_split_registry.rds`
-- `master_checkpoint_registry.csv`
-- `master_checkpoint_registry.rds`
-- `master_group_test_metrics.csv`
-- `master_group_test_metrics.rds`
-- `summary_by_split.csv`
-- `group_summary_by_split.csv`
-- `TRAINING_fullspec_IDsplit_multisplit_10x20.RData`
-- 
+ `split_meta/`
+ `fixed_split_list.rds
+ `fixed_split_registry.csv`
+ `fixed_split_registry.rds`
+ `master_checkpoint_registry.csv`
+ `master_checkpoint_registry.rds`
+ `master_group_test_metrics.csv`
+ `master_group_test_metrics.rds`
+ `summary_by_split.csv`
+ `group_summary_by_split.csv`
+ `TRAINING_fullspec_IDsplit_multisplit_10x20.RData` 
 ### `Supplemental_full_post_graphing_Final.R`
 
 Post-estimation evaluation and graphing script for the trained full neural-network hazard model.
@@ -100,7 +80,7 @@ Required existing files inside that folder include:
 
 Main output folder:
 
-- `checkpoints_fullspec_IDsplit_multisplit/post_eval_tables_full_only_compact`
+`checkpoints_fullspec_IDsplit_multisplit/post_eval_tables_full_only_compact`
 
 This script produces compact post-estimation summaries and does not save row-level prediction files.
 
