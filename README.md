@@ -208,13 +208,6 @@ These are held-constant probes referenced in the manuscript
 | `master_group_test_metrics.csv` | Group-level test metrics from training |
 | `TRAINING_fullspec_IDsplit_multisplit_10x20.RData` | Global training image used by post-estimation scripts |
 
-## Post-estimation representational probes
-
-| Probe | Description | Main quantities |
-|---|---|---|
-| Probe 1 | Compares classification under observed profiles and held-constant AL/Personality profiles | TP, FN, accuracy, sensitivity, specificity, precision |
-| Probe 2 | Estimates age-specific observed minus held-constant predicted mortality risk | Percentage-point risk difference by age bin, race, sex, and scenario |
-
 ## Held-constant scenarios
 
 | Scenario | Description |
@@ -223,16 +216,6 @@ These are held-constant probes referenced in the manuscript
 | `AL = 0` | Standardized AL inputs set to `0`; trained parameters fixed |
 | `Personality = 0` | Standardized Personality inputs set to `0`; trained parameters fixed |
 | `AL + Personality = 0` | Both AL and Personality inputs set to `0`; trained parameters fixed |
-
-## Interpretation of held-constant probes
-
-| Point | Interpretation |
-|---|---|
-| What `0` means | The analytic-sample mean on the standardized scale |
-| What is held fixed | All trained model parameters |
-| What changes | Selected standardized input domains and their missingness indicators |
-| What the probes estimate | Changes in prediction and classification under withheld information |
-| What the probes do not estimate | Causal effects of AL, Personality, biomarkers, or psychometric traits |
 
 ## Key post-estimation outputs
 
@@ -247,16 +230,6 @@ These are held-constant probes referenced in the manuscript
 | `18_probe2_agebin_observed_minus_heldconstant_risk_difference.csv` | Probe 2 age-specific risk-difference table |
 | `18_probe2_agebin_observed_minus_heldconstant_risk_difference.png` | Probe 2 manuscript figure |
 
-## Software requirements
-
-| Package | Used for |
-|---|---|
-| `torch` | Neural-network model training and inference |
-| `coro` | Torch training loop support |
-| `caret` | Train/test partitioning |
-| `dplyr` | Data wrangling |
-| `tidyr` | Data restructuring |
-| `readr` | CSV output |
 | `ggplot2` | Figure generation |
 | `lme4` | Random-intercept logistic regression |
 | `splines` | Natural spline age models |
