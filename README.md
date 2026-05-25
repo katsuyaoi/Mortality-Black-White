@@ -1,165 +1,295 @@
-README — Supplemental Materials
-Supplemental data.zip will contain three data sets required to run an R program described below.
+# README — Supplemental Materials
 
-Supplemental_base_gpu_FINAL
-Neural network–based discrete-time hazard model using baseline covariates, estimated across 100 random seeds with optional GPU acceleration.
-1.	Place hrs_survival.csv and hrs_al.csv in the same directory.
-2.	Edit the setwd() line at the top of the script to point to that directory.
-This program will use a graphics processing unit (GPU) if one is available, which can substantially reduce training time. Running GPU-accelerated torch in R typically requires CUDA. As of February 2026, CUDA-based acceleration is supported only on NVIDIA GPUs with the appropriate drivers and CUDA Toolkit installed. CUDA Toolkit downloads are available at: https://developer.nvidia.com/cuda-downloads
-For transparency and reproducibility, all hyperparameters are explicitly listed in the script. These parameters define the model architecture and training configuration and may be modified for replication, robustness checks, or adaptation to other research aims. In contrast to common machine-learning practice, hyperparameters are not tuned to maximize predictive performance. Instead, the model uses a fixed, documented configuration to support abductive benchmarking, establishing a stable comparative baseline from which substantive patterns can be evaluated.
-Results from 100 random seeds are saved to a dedicated subdirectory via an internal checkpoint function. These seed-level outputs can be reused for post-estimation analyses, robustness checks, and diagnostic evaluation without retraining the model.
+This repository contains supplemental materials for the manuscript:
 
-Supplemental_full_gpu_FINAL
-Neural network–based discrete-time hazard model incorporating physiological and psychometric covariates, estimated across 100 random seeds with optional GPU acceleration.
-1.	Place hrs_survival.csv and hrs_al.csv in the same directory.
-2.	Edit the setwd() line at the top of the script to point to that directory.
-GPU usage, CUDA requirements, hyperparameter documentation, abductive benchmarking logic, and checkpointing behavior are identical to Supplemental_base_gpu_FINAL. Results are saved at the seed level to support reproducibility and post-estimation analyses.
+**Comparing Surface-Based and Regression-Based Representations of the Black–White Mortality Hazard Gap**
 
-Supplemental_survival_FINAL
-Conventional discrete-time survival analysis using multilevel logistic regression on long-format person-period data.
-1.	Place hrs_survival_post.csv in the same directory.
-2.	Edit the setwd() line at the top of the script to point to that directory.
-This file differs from hrs_survival.csv in that survival intervals are stored in long format, enabling multilevel logistic regression. Because computational demands are relatively modest, this program does not implement a checkpointing function.
+The supplemental files provide the R scripts and input-data structure needed to reproduce the regression-based hazard benchmarks, train the full neural-network hazard model, and generate post-estimation representational probe tables and figures.
 
+## Files included
+All data files are included in the zip.file titled 'supplemental data.' Unzip and place them your working directory.
 
+### `Supplemental_full_regression_FINAL.R`
 
-**Data preprocessing & encoding**
-| Component        | Specification                                                           |
-| ---------------- | ----------------------------------------------------------------------- |
-| Outcome          | `died_` encoded as binary event via `factor(levels = c(0,1))`           |
-| Age transforms   | `age_`, `age_1`, `age_3`, `age_5` log-transformed (`log(age_*)`)        |
-| Raw age          | `age_raw`, `age_raw_1`, `age_raw_3`, `age_raw_5` retained untransformed |
-| Standardization  | Z-score scaling applied to all **non-binary, non-age** variables        |
-| Binary detection | Columns restricted to values in `{0,1}`                                 |
-| Age exclusions   | All `age_*` and `age_raw_*` variables excluded from scaling             |
-| Missing values   | Post-scaling NAs set to zero (`X_scaled[is.na(X_scaled)] <- 0`)         |
-| Missingness mask | `na_mask_mat`: 1 if NA, 0 otherwise                                     |
-| Mask usage       | Values and masks concatenated at each step: `(x_seq ∥ m_seq)`           |
-**Time-varying (TV) structure**
-| Component        | Specification                                                                    |
-| ---------------- | -------------------------------------------------------------------------------- |
-| Intended waves   | `waves <- 1:15`                                                                  |
-| Retained waves   | Non-empty waves only                                                             |
-| Constraint       | Equal per-step feature counts enforced                                           |
-| TV feature bases | `sayret`, `mwid`, `cesd`, `shlt`, `cancre`, `diabe`, `hearte`, `mobila`, `adl5a` |
-| Steps            | `n_steps` determined at runtime                                                  |
-| Step feature dim | `tv_step_feat_dim`                                                               |
-| Step input       | `2 × tv_step_feat_dim` (values + mask)                                           |
-**Train/test split**
-| Component    | Specification                                 |
-| ------------ | --------------------------------------------- |
-| Split method | Stratified 80/20 split                        |
-| Function     | `caret::createDataPartition(y_idx, p = 0.80)` |
-| Unit         | Person id                                     |
-**Model architecture**
-| Component        | Specification                            |
-| ---------------- | ---------------------------------------- |
-| Model class      | Multi-component feedforward MLP          |
-| Subnetworks      | Static branch + TV branch with attention |
-| Mixing           | Concatenation + dense layer              |
-| Output           | Two-class logits                         |
-| Random intercept | ID embedding added to death logit        |
-**Static branch**
-| Parameter   | Value           |
-| ----------- | --------------- |
-| Layers      | 2               |
-| Hidden size | `h_static = 64` |
-| Activation  | ReLU            |
-| Dropout     | `0.25`          |
-**Time-varying branch**
-| Parameter    | Value                                  |
-| ------------ | -------------------------------------- |
-| Per-step MLP | 2 layers                               |
-| Hidden size  | `h_tv = 64`                            |
-| Activation   | ReLU                                   |
-| Dropout      | `0.25`                                 |
-| Attention    | Softmax-normalized weights across time |
-| Output       | Weighted sum over steps                |
-**Mixing & output**
-| Component     | Specification                               |
-| ------------- | ------------------------------------------- |
-| Concatenation | `[h_static ∥ h_tv]`                         |
-| Mixing layer  | `mix_dim = 16`, ReLU                        |
-| Output head   | `mix_dim → 2` logits                        |
-| ID embedding  | Dimension = 1                               |
-| ID scale      | Learnable scalar `alpha_id` (initialized 0) |
-| Application   | Additive shift to death logit (class 1)     |
-**Training & optimization**
-| Component      | Specification                                |
-| -------------- | -------------------------------------------- |
-| Seeds          | `1:100`                                      |
-| Seeding        | `torch_manual_seed(seed)` + `set.seed(seed)` |
-| Epochs         | 100                                          |
-| Batch size     | Train = 1024, Test = 1024                    |
-| Optimizer      | Adam                                         |
-| Learning rate  | `1e-3`                                       |
-| Weight decay   | `1e-3`                                       |
-| Loss           | Weighted cross-entropy                       |
-| Class weights  | Inverse frequency, normalized to mean 1      |
-| Classification | Argmax over logits                           |
-| Checkpointing  | `checkpoints_base_observed/seed_###.pt`      |
-| Device         | CUDA if available                            |
+Conventional regression-based discrete-time hazard models using sex-stratified random-intercept logistic regression.
 
-**Hyperparameters — Supplemental_full_gpu_FINAL (Base + AL + Personality)**
-**Data preprocessing & encoding**
-| Component        | Specification                                              |
-| ---------------- | ---------------------------------------------------------- |
-| Outcome          | `died_` binary (0/1)                                       |
-| Hazard age       | `age_` log-transformed; `age_raw` retained                 |
-| AL ages          | `age_1`, `age_3`, `age_5` log-transformed; raw retained    |
-| Personality ages | `agep_1`, `agep_3`, `agep_5` log-transformed; raw retained |
-| Scaling          | Z-score for all non-binary, non-age variables              |
-| Missing values   | Set to 0 post-scaling                                      |
-| Missingness mask | Binary NA indicator                                        |
-| Mask usage       | Concatenated with values in all sequence branches          |
-**Sequential structures**
-| Component      | Specification              |
-| -------------- | -------------------------- |
-| Intended waves | 15                         |
-| Retained waves | Non-empty, equal dimension |
-| Bases          | Same as baseline           |
-| Step input     | `2 × tv_step_feat_dim`     |
-**AL & Personality branches**
-| Component   | Specification                          |
-| ----------- | -------------------------------------- |
-| Waves       | 3 (ages 1, 3, 5)                       |
-| Step input  | Values + mask + Δage                   |
-| Δage        | Raw age distance from current interval |
-| Attention   | Softmax across waves                   |
-| Hidden size | 64                                     |
-**Model architecture**
-| Component | Specification                  |
-| --------- | ------------------------------ |
-| Heads     | Static + TV + AL + Personality |
-| Mixing    | Cross-branch dense layer       |
-| Mix dim   | 32                             |
-| Output    | Additive base + AL/Pers logits |
-| ID effect | Embedded random intercept      |
-**Training schedule**
-| Component  | Specification          |
-| ---------- | ---------------------- |
-| Seeds      | `1:100`                |
-| Phase 1    | Base-only, 50 epochs   |
-| Phase 2    | Full model, 100 epochs |
-| Batch size | 1024                   |
-| Optimizer  | Adam                   |
-| LR / WD    | `1e-3 / 1e-3`          |
-**Loss & evaluation**
-| Component      | Specification                                |
-| -------------- | -------------------------------------------- |
-| Base loss      | Weighted cross-entropy                       |
-| FP penalty     | Mean squared predicted death among survivors |
-| Penalty weight | `lambda_fp = 0.5`                            |
-| Classification | Argmax over logits                           |
-| Groups         | NH-White vs Black                            |
-| Checkpointing  | `checkpoints_fullspec/seed_###.pt`           |
-| Saved artifact | `TRAINING_fullspec_100seeds.RData`           |
-| Device         | CUDA if available                            |
+This script estimates three regression specifications:
+
+1. Logged-age model  
+2. Three-degree-of-freedom natural spline-age model  
+3. Race-specific spline-age model allowing the spline-age function to vary for non-Hispanic Black respondents  
+
+The script also generates fixed-effect predicted mortality curves by age, model-fit statistics, coefficient tables, and classification-performance summaries under both conventional and prevalence-calibrated thresholds.
+
+Required input file:
+
+- `hrs_survival_post.csv`
+
+Place `hrs_survival_post.csv` in the working directory and edit the `setwd("yourdatalocation")` line at the top of the script.
+
+Main output folder:
+
+- `regression_hazard_model_results`
+
+Key outputs include:
+
+- `coefficient_table_all_models.csv`
+- `model_fit_table_mortality_models.csv`
+- `mortality_model_comparison_curves_age50_90_by5_fixed_effect_ci.csv`
+- `mortality_model_comparison_curves_age50_90_by5_fixed_effect_ci.png`  Figure 1 
+- `eval_threshold_free_full_data.csv`
+- `eval_thresholded_full_data.csv`
+- `eval_threshold_free_full_data_by_race_sex.csv`
+- `eval_thresholded_full_data_by_race_sex.csv`
+- `eval_subgroup_thresholded_full_data.csv`
+- `regression_model_objects_all.rds`
+- `regression_hazard_model_workspace.RData`
+
+The regression models are estimated on the full analytic person-interval file. Classification results from these models are used as regression-based benchmarks rather than held-out neural-network evaluations.
+
+---
+
+### `Supplemental_full_gpu_FINAL.R`
+
+Full neural-network discrete-time hazard model incorporating demographic, temporal, reported-health, Allostatic Load, and Personality data branches.
+
+This script trains the full neural-network hazard model across:
+
+- 10 respondent-level train/test partitions
+- 20 training seeds per partition
+- 200 total trained models
+
+Respondents, rather than person-interval rows, are assigned to training and test sets to prevent within-person leakage across partitions.
+
+Required input files:
+
+- `hrs_survival.csv`
+- `hrs_al.csv`
+
+Place both files in the same working directory and edit the `setwd("yourdatalocation")` line at the top of the script.
+
+Main output folder:
+
+- `checkpoints_fullspec_IDsplit_multisplit`
+
+Key outputs include:
+
+- Split-specific checkpoint folders
+- `split_meta/`
+- `fixed_split_list.rds`
+- `fixed_split_registry.csv`
+- `fixed_split_registry.rds`
+- `master_checkpoint_registry.csv`
+- `master_checkpoint_registry.rds`
+- `master_group_test_metrics.csv`
+- `master_group_test_metrics.rds`
+- `summary_by_split.csv`
+- `group_summary_by_split.csv`
+- `TRAINING_fullspec_IDsplit_multisplit_10x20.RData`
+
+The script is GPU-ready. It uses CUDA if available through R `torch`; otherwise, it runs on CPU. GPU acceleration requires a compatible NVIDIA GPU, appropriate drivers, and CUDA support for R `torch`.
+
+The script does not perform counterfactual or held-constant inference. It trains the full model, saves seed-level checkpoints, and stores split-level metadata for post-estimation evaluation.
+
+---
+
+### `Supplemental_full_post_graphing_Final.R`
+
+Post-estimation evaluation and graphing script for the trained full neural-network hazard model.
+
+This script should be run only after `Supplemental_full_gpu_FINAL.R` has successfully completed and the checkpoint directory has been created.
+
+Required existing folder:
+
+- `checkpoints_fullspec_IDsplit_multisplit`
+
+Required existing files inside that folder include:
+
+- `TRAINING_fullspec_IDsplit_multisplit_10x20.RData`
+- split-level training state files in `split_meta/`
+- seed-level model checkpoints inside the split folders
+
+Main output folder:
+
+- `checkpoints_fullspec_IDsplit_multisplit/post_eval_tables_full_only_compact`
+
+This script produces compact post-estimation summaries and does not save row-level prediction files.
+
+Main outputs include:
+
+- Race × sex performance summaries
+- Age-bin × race × sex performance summaries
+- Observed predicted-risk summaries
+- Black–White risk gaps and risk ratios
+- Inference-time held-constant summaries
+- Scenario-vs-observed risk and performance changes
+- Scenario-vs-observed Black–White gap and risk-ratio changes
+- Representational Probe 2 graph and table
+
+Key output files include:
+
+- `00_age_bin_config.csv`
+- `01a_seed_metrics_race_sex.csv`
+- `01c_headline_metrics_race_sex_across_splits.csv`
+- `02c_headline_metrics_agebin_race_sex_across_splits.csv`
+- `03c_headline_observed_risk_agebin_race_sex_across_splits.csv`
+- `04b_headline_observed_risk_gap_rr_agebin_sex.csv`
+- `05e_headline_counterfactual_risk_change_vs_observed_agebin_race_sex.csv`
+- `10b_headline_counterfactual_metrics_race_sex.csv`
+- `13_manuscript_full_model_race_sex_summary.csv`
+- `14_manuscript_counterfactual_predictive_ablation_table.csv`
+- `15_manuscript_counterfactual_scenario_risk_table.csv`
+- `16_plot_ready_observed_agebin_gap_rr.csv`
+- `17_plot_ready_counterfactual_agebin_gap_rr_change.csv`
+- `18_probe2_agebin_observed_minus_heldconstant_risk_difference.csv` 
+- `18_probe2_agebin_observed_minus_heldconstant_risk_difference.png`   Figure 2
+
+The post-estimation scenarios are:
+
+1. Observed  
+2. `AL = 0`  
+3. `Personality = 0`  
+4. `AL + Personality = 0`  
+
+These are inference-time held-constant probes referenced in the manuscript
 
 
+## Supplemental files
 
+| File | Purpose | Required input | Main output |
+|---|---|---|---|
+| `Supplemental_full_regression_FINAL.R` | Estimates regression-based discrete-time hazard benchmarks using sex-stratified random-intercept logistic models | `hrs_survival_post.csv` | `regression_hazard_model_results/` |
+| `Supplemental_full_gpu_FINAL.R` | Trains the full neural-network hazard model with demographic, temporal, reported-health, AL, and Personality branches | `hrs_survival.csv`, `hrs_al.csv` | `checkpoints_fullspec_IDsplit_multisplit/` |
+| `Supplemental_full_post_graphing_Final.R` | Loads trained full-model checkpoints and generates post-estimation tables, probes, and figures | Completed checkpoint folder from full NN training | `post_eval_tables_full_only_compact/` |
 
+## Recommended run order
 
+| Step | Script | Description |
+|---|---|---|
+| 1 | `Supplemental_full_regression_FINAL.R` | Fit regression hazard benchmarks and generate fitted age-specific mortality curves |
+| 2 | `Supplemental_full_gpu_FINAL.R` | Train full NN hazard models across respondent-level splits and seeds |
+| 3 | `Supplemental_full_post_graphing_Final.R` | Generate race–sex performance tables, held-constant probes, and age-bin figures |
 
+## Regression benchmark specifications
 
+| Component | Specification |
+|---|---|
+| Model type | Sex-stratified random-intercept logistic discrete-time hazard model |
+| Outcome | Death in the subsequent interval, `died_` |
+| Age model 1 | Logged age |
+| Age model 2 | Three-degree-of-freedom natural spline for age |
+| Age model 3 | Three-degree-of-freedom natural spline interacted with NH-Black status |
+| Random effect | Respondent-level random intercept |
+| Evaluation | Full analytic person-interval sample |
+| Thresholds | Conventional `0.50` and race–sex-specific prevalence-calibrated threshold |
+| Main output folder | `regression_hazard_model_results/` |
 
+## Full neural-network preprocessing
+
+| Component | Specification |
+|---|---|
+| Outcome | `died_` binary event indicator |
+| Hazard age | `age_` log-transformed; `age_raw` retained |
+| AL ages | `age_1`, `age_3`, `age_5` log-transformed; raw AL ages retained |
+| Personality ages | `agep_1`, `agep_3`, `agep_5` log-transformed; raw personality ages retained |
+| Scaling | Z-score scaling for non-binary, non-age variables |
+| Missing values | Set to `0` after scaling |
+| Missingness mask | Binary NA indicator matrix |
+| Mask usage | Values and masks are passed jointly to model branches |
+| Person IDs | Encoded for ID embedding/random-intercept component |
+
+## Full neural-network data branches
+
+| Branch | Information represented | Structure |
+|---|---|---|
+| Static branch | Demographic, education, entry-period, and baseline covariates | Feedforward dense layers |
+| Time-varying branch | Reported health and interval-varying measures across up to 15 intervals | Shared per-step MLP + attention |
+| AL branch | Biomarkers and anthropometric measures across three waves | Shared wave-level MLP + attention |
+| Personality branch | Big Five, control, self-efficacy, optimism across three waves | Shared wave-level MLP + attention |
+| ID component | Respondent-specific unobserved heterogeneity | One-dimensional ID embedding added to death logit |
+
+## Full neural-network training design
+
+| Component | Specification |
+|---|---|
+| Split design | Respondent-level train/test partitions |
+| Number of splits | 10 |
+| Seeds per split | 20 |
+| Total trained models | 200 |
+| Train/test ratio | 80/20 |
+| Leakage prevention | Respondents, not person-interval rows, assigned to partitions |
+| Optimizer | Adam |
+| Learning rate | `1e-3` |
+| Weight decay | `1e-3` |
+| Batch size | `1024` |
+| Dropout | `0.25` |
+| Branch hidden size | `64` |
+| Mixing dimension | `32` |
+| Classification rule | Argmax over two-class logits |
+| Device | CUDA/GPU if available; CPU otherwise |
+
+## Full neural-network saved objects
+
+| Output | Description |
+|---|---|
+| `checkpoints_fullspec_IDsplit_multisplit/` | Root checkpoint directory |
+| `split_meta/` | Split-level training states and metadata |
+| `seed_###.pt` | Seed-specific trained model checkpoint within each split folder |
+| `master_checkpoint_registry.csv` | Registry of trained checkpoints across splits and seeds |
+| `master_group_test_metrics.csv` | Group-level test metrics from training |
+| `TRAINING_fullspec_IDsplit_multisplit_10x20.RData` | Global training image used by post-estimation scripts |
+
+## Post-estimation representational probes
+
+| Probe | Description | Main quantities |
+|---|---|---|
+| Probe 1 | Compares classification under observed profiles and held-constant AL/Personality profiles | TP, FN, accuracy, sensitivity, specificity, precision |
+| Probe 2 | Estimates age-specific observed minus held-constant predicted mortality risk | Percentage-point risk difference by age bin, race, sex, and scenario |
+
+## Held-constant scenarios
+
+| Scenario | Description |
+|---|---|
+| `Observed` | Full model predictions using observed inputs |
+| `AL = 0` | Standardized AL inputs set to `0`; trained parameters fixed |
+| `Personality = 0` | Standardized Personality inputs set to `0`; trained parameters fixed |
+| `AL + Personality = 0` | Both AL and Personality inputs set to `0`; trained parameters fixed |
+
+## Interpretation of held-constant probes
+
+| Point | Interpretation |
+|---|---|
+| What `0` means | The analytic-sample mean on the standardized scale |
+| What is held fixed | All trained model parameters |
+| What changes | Selected standardized input domains and their missingness indicators |
+| What the probes estimate | Changes in prediction and classification under withheld information |
+| What the probes do not estimate | Causal effects of AL, Personality, biomarkers, or psychometric traits |
+
+## Key post-estimation outputs
+
+| File | Description |
+|---|---|
+| `01c_headline_metrics_race_sex_across_splits.csv` | Race–sex classification performance across held-out partitions |
+| `02c_headline_metrics_agebin_race_sex_across_splits.csv` | Age-bin race–sex classification performance |
+| `03c_headline_observed_risk_agebin_race_sex_across_splits.csv` | Observed predicted mortality risk by age bin, race, and sex |
+| `10b_headline_counterfactual_metrics_race_sex.csv` | Held-constant classification performance by race and sex |
+| `13_manuscript_full_model_race_sex_summary.csv` | Manuscript-ready full-model race–sex summary |
+| `14_manuscript_counterfactual_predictive_ablation_table.csv` | Manuscript-ready Probe 1 table |
+| `18_probe2_agebin_observed_minus_heldconstant_risk_difference.csv` | Probe 2 age-specific risk-difference table |
+| `18_probe2_agebin_observed_minus_heldconstant_risk_difference.png` | Probe 2 manuscript figure |
+
+## Software requirements
+
+| Package | Used for |
+|---|---|
+| `torch` | Neural-network model training and inference |
+| `coro` | Torch training loop support |
+| `caret` | Train/test partitioning |
+| `dplyr` | Data wrangling |
+| `tidyr` | Data restructuring |
+| `readr` | CSV output |
+| `ggplot2` | Figure generation |
+| `lme4` | Random-intercept logistic regression |
+| `splines` | Natural spline age models |
+| `pROC` | ROC/AUC evaluation |
+| `PRROC` | Precision-recall evaluation |
