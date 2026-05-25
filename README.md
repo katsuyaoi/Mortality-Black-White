@@ -1,8 +1,6 @@
 # README — Supplemental Materials
 
-This repository contains supplemental materials for the manuscript:
-
-**Comparing Surface-Based and Regression-Based Representations of the Black–White Mortality Hazard Gap**
+This repository contains supplemental materials for the manuscript:Comparing Surface-Based and Regression-Based Representations of the Black–White Mortality Hazard Gap
 
 The supplemental files provide the R scripts and input-data structure needed to reproduce the regression-based hazard benchmarks, train the full neural-network hazard model, and generate post-estimation representational probe tables and figures.
 
@@ -45,9 +43,7 @@ Key outputs include:
 - `regression_model_objects_all.rds`
 - `regression_hazard_model_workspace.RData`
 
-The regression models are estimated on the full analytic person-interval file. Classification results from these models are used as regression-based benchmarks rather than held-out neural-network evaluations.
-
----
+The regression models are estimated on the full analytic person-interval file. Classification results from these models are used as regression-based benchmarks referenced in text
 
 ### `Supplemental_full_gpu_FINAL.R`
 
@@ -59,9 +55,8 @@ This script trains the full neural-network hazard model across:
 - 20 training seeds per partition
 - 200 total trained models
 
-Respondents, rather than person-interval rows, are assigned to training and test sets to prevent within-person leakage across partitions.
 
-Required input files:
+Required input files in Supplemental data:
 
 - `hrs_survival.csv`
 - `hrs_al.csv`
@@ -86,13 +81,7 @@ Key outputs include:
 - `summary_by_split.csv`
 - `group_summary_by_split.csv`
 - `TRAINING_fullspec_IDsplit_multisplit_10x20.RData`
-
-The script is GPU-ready. It uses CUDA if available through R `torch`; otherwise, it runs on CPU. GPU acceleration requires a compatible NVIDIA GPU, appropriate drivers, and CUDA support for R `torch`.
-
-The script does not perform counterfactual or held-constant inference. It trains the full model, saves seed-level checkpoints, and stores split-level metadata for post-estimation evaluation.
-
----
-
+- 
 ### `Supplemental_full_post_graphing_Final.R`
 
 Post-estimation evaluation and graphing script for the trained full neural-network hazard model.
@@ -151,7 +140,7 @@ The post-estimation scenarios are:
 3. `Personality = 0`  
 4. `AL + Personality = 0`  
 
-These are inference-time held-constant probes referenced in the manuscript
+These are held-constant probes referenced in the manuscript
 
 
 ## Supplemental files
